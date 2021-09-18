@@ -9,7 +9,7 @@ from icalendar import Event as CalEvent
 from icalendar.prop import vDatetime
 
 from .event import Event
-from .exceptions import ScheduleFetchError, WUDeadError
+from .exceptions import ScheduleFetchError, WUDeadError, WUFileNotFound, WUInternalError
 
 # Suppress only the single warning from urllib3 needed.
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -51,6 +51,11 @@ class Schedule:
             )  # type: ignore
         except requests.exceptions.ConnectTimeout as e:
             raise WUDeadError(e)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 400:
+                raise WUFileNotFound(e)
+            if e.response.status_code == 500:
+                raise WUInternalError(e)
         except Exception as e:
             raise ScheduleFetchError(e)
 
